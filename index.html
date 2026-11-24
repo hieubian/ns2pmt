@@ -1,0 +1,1302 @@
+<!doctype html>
+<html lang="vi">
+
+<head>
+  <meta charset="utf-8" />
+
+  <style>
+    /* CSS Reset and Variables */
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --muted: #64748b;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --router: #fbbf24;
+      --node: #93c5fd;
+      --danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Topbar */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .topbar-left h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .topbar-right {
+      display: flex;
+      gap: 8px;
+    }
+
+    button {
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      transition: 0.15s;
+    }
+
+    button:hover {
+      background: #f1f5f9;
+    }
+
+    button.primary {
+      background: var(--primary);
+      color: white;
+      border: none;
+    }
+
+    button.primary:hover {
+      background: var(--primary-hover);
+    }
+
+    button.danger {
+      color: var(--danger);
+      border-color: #fca5a5;
+    }
+
+    /* Workspace */
+    .workspace {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .sidebar-right {
+      width: 360px;
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid var(--border);
+      z-index: 5;
+    }
+
+    .panel-title {
+      padding: 12px 16px;
+      font-weight: bold;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+      background: #f8fafc;
+    }
+
+    .panel-content {
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Tools */
+    .topbar-tools {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .tool-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      transition: 0.2s;
+      color: var(--muted);
+    }
+
+    .tool-btn:hover {
+      background: #e2e8f0;
+      color: var(--text);
+    }
+
+    .tool-btn.active {
+      background: white;
+      color: var(--primary);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Properties */
+    .prop-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .prop-group label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .prop-group input,
+    .prop-group select {
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .prop-group input:focus,
+    .prop-group select:focus {
+      border-color: var(--primary);
+    }
+
+    .empty-state {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 20px;
+    }
+
+    /* Canvas */
+    .canvas-container {
+      flex: 1;
+      position: relative;
+      background: radial-gradient(circle, #cbd5e1 2px, transparent 2.5px);
+      background-size: 48px 48px;
+      background-position: 24px 24px;
+      cursor: default;
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .edge {
+      stroke: #475467;
+      stroke-width: 2;
+      cursor: pointer;
+    }
+
+    .edge.bottleneck {
+      stroke: #f59e0b;
+      stroke-width: 3;
+    }
+
+    .edge.selected {
+      stroke: var(--primary);
+      stroke-width: 4;
+    }
+
+    .node {
+      cursor: grab;
+    }
+
+    .node circle {
+      stroke: #1e293b;
+      stroke-width: 2;
+    }
+
+    .node.router circle {
+      fill: var(--router);
+    }
+
+    .node.endpoint circle {
+      fill: var(--node);
+    }
+
+    .node.selected circle {
+      stroke: var(--primary);
+      stroke-width: 4;
+    }
+
+    .node text {
+      font-weight: bold;
+      font-size: 18px;
+      text-anchor: middle;
+      dominant-baseline: central;
+      pointer-events: none;
+    }
+
+    .edge-label {
+      font-size: 13px;
+      fill: #1e293b;
+      font-weight: 500;
+      paint-order: stroke;
+      stroke: #fff;
+      stroke-width: 4px;
+      pointer-events: none;
+    }
+
+    .flow-box {
+      fill: white;
+      stroke: #94a3b8;
+      stroke-width: 1;
+      rx: 4;
+    }
+
+    .flow-text {
+      font-size: 11px;
+      fill: #1e293b;
+      text-anchor: middle;
+      dominant-baseline: central;
+      pointer-events: none;
+    }
+
+    .flow-line {
+      stroke: #94a3b8;
+      stroke-width: 1;
+      stroke-dasharray: 2 2;
+    }
+
+    /* Contextual Sidebar UI */
+    .prop-section {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    }
+
+    .section-title {
+      margin: 0 0 16px 0;
+      font-size: 14px;
+      color: #1e293b;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 8px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .input-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .input-col {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .input-col label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .input-col input,
+    .input-col select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+      background: #f8fafc;
+      transition: 0.2s;
+    }
+
+    .input-col input:focus,
+    .input-col select:focus {
+      border-color: var(--primary);
+      background: white;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .flow-card {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+
+    .flow-card:last-child {
+      margin-bottom: 0;
+    }
+
+    .flow-card-header {
+      background: #f1f5f9;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .flow-card-body {
+      padding: 12px;
+      background: white;
+    }
+
+    .danger-outline {
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid #fca5a5;
+      cursor: pointer;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      transition: 0.15s;
+    }
+
+    .danger-outline:hover {
+      background: #fef2f2;
+    }
+
+    .icon-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: 0.15s;
+    }
+
+    .icon-btn:hover {
+      background: #e2e8f0;
+      color: var(--text);
+    }
+
+    .icon-btn.danger:hover {
+      background: #fef2f2;
+      color: var(--danger);
+    }
+
+    .bottleneck-box {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 6px;
+      padding: 12px;
+      margin-top: 16px;
+    }
+
+    .badge {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: bold;
+      color: white;
+      white-space: nowrap;
+      width: max-content;
+    }
+
+    .badge.tcp {
+      background: var(--primary);
+    }
+
+    .badge.udp {
+      background: #8b5cf6;
+    }
+
+    .badge.link {
+      background: #475467;
+    }
+
+    .badge.general {
+      background: #0f172a;
+    }
+
+    .field-compact {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .field-compact label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .field-compact input,
+    .field-compact select {
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      outline: none;
+      background: #f8fafc;
+      transition: 0.2s;
+      width: 70px;
+    }
+
+    .field-compact input.wide {
+      width: 100px;
+    }
+
+    .field-compact input:focus,
+    .field-compact select:focus {
+      border-color: var(--primary);
+      background: white;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .field-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .field-checkbox input {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: var(--primary);
+      margin: 0;
+    }
+
+    /* Hint Modal */
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: bold;
+      opacity: 0;
+      transition: 0.2s;
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="topbar-left">
+
+    </div>
+    <div class="topbar-tools">
+      <button class="tool-btn active" id="toolSelect">👆 Chuột</button>
+      <button class="tool-btn" id="toolNode">🔵 Thêm Node</button>
+      <button class="tool-btn" id="toolRouter">🟡 Thêm Router</button>
+      <button class="tool-btn" id="toolLink">🔗 Nối dây</button>
+    </div>
+    <div class="topbar-right">
+      <button id="btnClear" class="danger">Xóa trắng</button>
+      <button id="btnExport" class="primary">Xuất file (.tcl, .awk, .xg)</button>
+    </div>
+  </div>
+
+  <div class="workspace">
+    <!-- Center Canvas -->
+    <div class="canvas-container" id="canvasWrap">
+      <svg id="svg"></svg>
+    </div>
+
+    <!-- Right Sidebar (Contextual Configuration) -->
+    <div class="sidebar-right">
+      <div class="panel-title" style="font-size: 15px; text-align: center; padding: 14px; background: white;">⚙️ Bảng
+        Cấu Hình</div>
+      <div class="panel-content" id="propContent" style="background: #f8fafc; padding: 16px; gap: 16px;">
+        <!-- Dynamic contextual UI -->
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // --- CORE LOGIC ---
+    const $ = id => document.getElementById(id);
+    const svg = $('svg');
+    const NS = 'http://www.w3.org/2000/svg';
+
+    let state = {
+      nodes: [],
+      links: [],
+      flows: [],
+      simTime: 20
+    };
+
+    let selected = { type: null, id: null };
+    let currentTool = 'select'; // select, addNode, addRouter, addLink
+    let actionState = { step: 0, fromId: null, flowType: null };
+    let drag = null;
+    let toastTimer = null;
+
+    function showToast(text) {
+      $('toast').textContent = text;
+      $('toast').classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => $('toast').classList.remove('show'), 2000);
+    }
+
+    function nodeById(id) { return state.nodes.find(n => n.id === id); }
+    function getNodeVisualId(n) { return n ? (n.namId !== undefined ? n.namId : state.nodes.indexOf(n)) : '?'; }
+    function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+    // --- DRAWING ---
+    function renderSvg() {
+      svg.innerHTML = '';
+
+      // 1. Draw Links
+      state.links.forEach((l, i) => {
+        const a = nodeById(l.a), b = nodeById(l.b);
+        if (!a || !b) return;
+        const g = document.createElementNS(NS, 'g');
+        const line = document.createElementNS(NS, 'line');
+        line.setAttribute('x1', a.x); line.setAttribute('y1', a.y);
+        line.setAttribute('x2', b.x); line.setAttribute('y2', b.y);
+        line.classList.add('edge');
+        if (l.bottleneck) line.classList.add('bottleneck');
+        if (selected.type === 'link' && selected.id === i) line.classList.add('selected');
+
+        // Transparent thicker line for easier clicking
+        const clickLine = document.createElementNS(NS, 'line');
+        clickLine.setAttribute('x1', a.x); clickLine.setAttribute('y1', a.y);
+        clickLine.setAttribute('x2', b.x); clickLine.setAttribute('y2', b.y);
+        clickLine.setAttribute('stroke', 'transparent');
+        clickLine.setAttribute('stroke-width', 20);
+        clickLine.style.cursor = 'pointer';
+        clickLine.onclick = (e) => {
+          e.stopPropagation();
+          if (currentTool === 'select') { selected = { type: 'link', id: i }; renderAll(); }
+        };
+
+        // Labels
+        const midX = (a.x + b.x) / 2, midY = (a.y + b.y) / 2;
+        const t = document.createElementNS(NS, 'text');
+        t.classList.add('edge-label');
+        t.setAttribute('x', midX); t.setAttribute('y', midY - 10);
+        t.setAttribute('text-anchor', 'middle');
+        t.textContent = `${l.bw}, ${l.delay}`;
+
+        g.appendChild(line);
+        if (l.bottleneck) {
+          const q = document.createElementNS(NS, 'text');
+          q.classList.add('edge-label');
+          q.setAttribute('x', midX); q.setAttribute('y', midY - 25);
+          q.setAttribute('text-anchor', 'middle');
+          q.setAttribute('font-size', '20px');
+          q.setAttribute('font-weight', '900');
+          q.textContent = 'Q';
+          g.appendChild(q);
+        }
+        g.appendChild(t);
+        g.appendChild(clickLine);
+        svg.appendChild(g);
+      });
+
+      // 2. Draw Nodes
+      state.nodes.forEach(n => {
+        const g = document.createElementNS(NS, 'g');
+        g.classList.add('node', n.kind);
+        if (selected.type === 'node' && selected.id === n.id) g.classList.add('selected');
+        if (currentTool === 'addLink' && actionState.fromId === n.id) g.classList.add('selected'); // Highlight when linking
+
+        g.setAttribute('transform', `translate(${n.x} ${n.y})`);
+
+        const c = document.createElementNS(NS, 'circle');
+        c.setAttribute('r', n.kind === 'router' ? 24 : 20);
+
+        const t = document.createElementNS(NS, 'text');
+        t.textContent = getNodeVisualId(n);
+
+        g.appendChild(c);
+        g.appendChild(t);
+        svg.appendChild(g);
+
+        g.addEventListener('pointerdown', e => {
+          e.stopPropagation();
+          if (currentTool === 'addLink') {
+            if (!actionState.fromId) {
+              actionState.fromId = n.id;
+              showToast('Chọn node thứ 2 để nối dây');
+              renderAll();
+            } else {
+              if (actionState.fromId !== n.id) {
+                const exists = state.links.some(l => (l.a === actionState.fromId && l.b === n.id) || (l.a === n.id && l.b === actionState.fromId));
+                if (exists) {
+                  showToast('Đã có Liên kết giữa 2 Node này!');
+                } else {
+                  state.links.push({ a: actionState.fromId, b: n.id, bw: '10Mb', delay: '10ms', queue: 'DropTail' });
+                  selected = { type: 'link', id: state.links.length - 1 };
+                  actionState.fromId = null;
+                  showToast('Đã nối dây');
+                  renderAll();
+                }
+              }
+            }
+          } else if (actionState.flowType) {
+            // Create flow from selected node to this node
+            let type = actionState.flowType;
+            let maxNum = -1;
+            state.flows.forEach(f => {
+              if (f.type === type) {
+                const m1 = f.name.match(/\d+/);
+                const m2 = (f.agentName || '').match(/\d+/);
+                if (m1) maxNum = Math.max(maxNum, parseInt(m1[0], 10));
+                if (m2) maxNum = Math.max(maxNum, parseInt(m2[0], 10));
+              }
+            });
+            let num = maxNum >= 0 ? maxNum + 1 : 0;
+            let name = (type === 'tcp' ? 'ftp' : 'Cbr') + num;
+            let agentName = (type === 'tcp' ? 'tcp' : 'udp') + num;
+            let sinkName = (type === 'tcp' ? 'sink' : 'null') + num;
+            let start = 1.0, stop = 20.0;
+            if (type === 'tcp') state.flows.push({ name, agentName, sinkName, type, src: actionState.fromId, dst: n.id, start, stop, window: 32, isReno: false, packetSize: '', interval: '' });
+            else state.flows.push({ name, agentName, sinkName, type, src: actionState.fromId, dst: n.id, start, stop, rate: '1.0Mb', interval: '', packetSize: '' });
+            actionState.flowType = null;
+            actionState.fromId = null;
+            showToast('Đã tạo luồng ' + name);
+            renderAll();
+          } else if (currentTool === 'select') {
+            selected = { type: 'node', id: n.id };
+            const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+            const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+            drag = { node: n, dx: p.x - n.x, dy: p.y - n.y };
+            svg.setPointerCapture(e.pointerId);
+            renderAll();
+          }
+        });
+
+        let attached = [];
+        state.flows.forEach((f, idx) => {
+          const agVar = (f.agentName || '').replace(/\s+/g, '') || (f.type === 'tcp' ? 'tcp' : 'udp') + idx;
+          const sinkVar = (f.sinkName || '').replace(/\s+/g, '') || (f.type === 'tcp' ? 'sink' : 'null') + idx;
+
+          if (f.src === n.id) attached.push({ text: f.agentName || agVar, desc: f.name, pkt: f.packetSize });
+          if (f.dst === n.id) attached.push({ text: f.sinkName || sinkVar, desc: '' });
+        });
+
+        attached.forEach((att, idx) => {
+          const angle = (Math.PI * 2 * idx) / Math.max(attached.length, 1) - Math.PI / 2 - (n.x > 400 ? Math.PI : 0);
+          const dist = 50;
+          const ax = n.x + Math.cos(angle) * dist;
+          const ay = n.y + Math.sin(angle) * dist;
+
+          const flg = document.createElementNS(NS, 'g');
+
+          const fline = document.createElementNS(NS, 'line');
+          fline.setAttribute('x1', n.x); fline.setAttribute('y1', n.y);
+          fline.setAttribute('x2', ax); fline.setAttribute('y2', ay);
+          fline.classList.add('flow-line');
+          svg.appendChild(fline);
+
+          let content = att.desc ? `${att.text} (${att.desc})` : att.text;
+          if (att.pkt != null && att.pkt !== '') content += ` [${att.pkt}]`;
+
+          const estWidth = Math.max(50, content.length * 6.5 + 16);
+          const fbox = document.createElementNS(NS, 'rect');
+          fbox.setAttribute('x', ax - estWidth/2); fbox.setAttribute('y', ay - 12);
+          fbox.setAttribute('width', estWidth); fbox.setAttribute('height', 24);
+          fbox.classList.add('flow-box');
+
+          const ftxt = document.createElementNS(NS, 'text');
+          ftxt.setAttribute('x', ax); ftxt.setAttribute('y', ay);
+          ftxt.classList.add('flow-text');
+          ftxt.textContent = content;
+
+          flg.appendChild(fbox);
+          flg.appendChild(ftxt);
+          svg.appendChild(flg);
+        });
+      });
+    }
+
+    let rAF = null;
+    svg.addEventListener('pointermove', e => {
+      if (!drag) return;
+      e.preventDefault();
+      const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+      const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+
+      const rawX = p.x - drag.dx;
+      const rawY = p.y - drag.dy;
+
+      // Snap to 48px grid with 24px offset
+      drag.node.x = Math.round((rawX - 24) / 48) * 48 + 24;
+      drag.node.y = Math.round((rawY - 24) / 48) * 48 + 24;
+
+      if (!rAF) {
+        rAF = requestAnimationFrame(() => {
+          renderSvg();
+          rAF = null;
+        });
+      }
+    });
+
+    svg.addEventListener('pointerup', e => {
+      if (drag) {
+        svg.releasePointerCapture(e.pointerId);
+        drag = null;
+      }
+    });
+
+    svg.addEventListener('pointercancel', e => {
+      if (drag) {
+        svg.releasePointerCapture(e.pointerId);
+        drag = null;
+      }
+    });
+
+    svg.addEventListener('pointerdown', e => {
+      if (e.target !== svg) return;
+      if (currentTool === 'addNode' || currentTool === 'addRouter') {
+        const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+        const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+        const kind = currentTool === 'addNode' ? 'endpoint' : 'router';
+        let idNum = 0;
+        while (nodeById(String(idNum))) idNum++;
+        let id = String(idNum);
+
+        // Snap to 48px grid with 24px offset
+        const snapX = Math.round((p.x - 24) / 48) * 48 + 24;
+        const snapY = Math.round((p.y - 24) / 48) * 48 + 24;
+
+        state.nodes.push({ id, kind, x: snapX, y: snapY });
+        selected = { type: 'node', id };
+        renderAll();
+      } else {
+        selected = { type: null, id: null };
+        actionState = { step: 0, fromId: null, flowType: null };
+        renderAll();
+      }
+    });
+
+    // --- CONTEXTUAL CONFIGURATION BOARD ---
+    function renderProperties() {
+      const panel = $('propContent');
+
+      if (actionState.flowType) {
+        panel.innerHTML = `<div class="empty-state" style="color:var(--primary);font-size:16px;font-weight:bold;margin-top:40px;">Đang chọn đích đến...<br><br><span style="font-size:13px;font-weight:normal;color:#64748b">Vui lòng bấm vào Node nhận luồng dữ liệu trên bản vẽ.</span></div>`;
+        return;
+      }
+
+      if (selected.type === 'node') {
+        const n = nodeById(selected.id);
+        if (!n) return;
+
+        let sendingFlowsHtml = '';
+        let receivingFlowsHtml = '';
+
+        state.flows.forEach((f, idx) => {
+          if (f.src === n.id) {
+            const isTcp = f.type === 'tcp';
+            const badgeClass = isTcp ? 'tcp' : 'udp';
+            const badgeText = isTcp ? 'TCP/FTP' : 'UDP/CBR';
+            const agName = f.agentName || (isTcp ? 'tcp' : 'udp') + idx;
+            const snkName = f.sinkName || (isTcp ? 'sink' : 'null') + idx;
+            const vDst = getNodeVisualId(nodeById(f.dst));
+
+            sendingFlowsHtml += `
+          <div class="flow-card">
+            <div class="flow-card-header">
+              <span class="badge ${badgeClass}">${badgeText} ➔ Node ${vDst}</span>
+              <button class="icon-btn danger" data-delflow="${idx}" title="Xóa luồng này">🗑️ Xóa</button>
+            </div>
+            <div class="flow-card-body">
+              <div class="input-row">
+                <div class="input-col"><label>Tên App</label><input data-f="${idx}" data-k="name" value="${escapeHtml(f.name)}"></div>
+                <div class="input-col"><label>Agent</label><input data-f="${idx}" data-k="agentName" value="${escapeHtml(agName)}"></div>
+                <div class="input-col"><label>Sink</label><input data-f="${idx}" data-k="sinkName" value="${escapeHtml(snkName)}"></div>
+              </div>
+              <div class="input-row">
+                <div class="input-col"><label>Bắt đầu (s)</label><input type="number" step="0.1" data-f="${idx}" data-k="start" value="${f.start}"></div>
+                <div class="input-col"><label>Kết thúc (s)</label><input type="number" step="0.1" data-f="${idx}" data-k="stop" value="${f.stop}"></div>
+              </div>
+              ${isTcp ? `
+                <div class="input-row">
+                  <div class="input-col"><label>Window</label><input type="number" data-f="${idx}" data-k="window" value="${f.window || 32}"></div>
+                  <div class="input-col" style="justify-content:center"><label class="field-checkbox" style="margin-top:18px"><input type="checkbox" data-f="${idx}" data-k="isReno" ${f.isReno ? 'checked' : ''}> TCP Reno</label></div>
+                  <div class="input-col"><label>PacketSize</label><input type="number" data-f="${idx}" data-k="packetSize" value="${f.packetSize || ''}" placeholder="Trống"></div>
+                </div>
+              ` : `
+                <div class="input-row">
+                  <div class="input-col"><label>Rate (VD: 1Mb)</label><input data-f="${idx}" data-k="rate" value="${escapeHtml(f.rate)}"></div>
+                  <div class="input-col"><label>Interval</label><input data-f="${idx}" data-k="interval" value="${escapeHtml(f.interval)}" placeholder="Trống"></div>
+                  <div class="input-col"><label>PacketSize</label><input type="number" data-f="${idx}" data-k="packetSize" value="${f.packetSize || ''}" placeholder="Trống"></div>
+                </div>
+              `}
+            </div>
+          </div>
+        `;
+          } else if (f.dst === n.id) {
+            const vSrc = getNodeVisualId(nodeById(f.src));
+            receivingFlowsHtml += `<div style="font-size:13px; color:#475467; background:#f1f5f9; padding:8px 12px; border-radius:6px; margin-bottom:6px; border:1px solid var(--border);">Nhận dữ liệu <b>${f.name}</b> từ Node ${vSrc}</div>`;
+          }
+        });
+
+        panel.innerHTML = `
+      <div class="prop-section">
+        <h3 class="section-title">Thông tin Node</h3>
+        <div class="input-row">
+          <div class="input-col">
+            <label title="Số hiển thị trên Node và thứ tự sinh mã">ID Node (NAM ID)</label>
+            <input id="propNodeNamId" type="number" value="${getNodeVisualId(n)}">
+          </div>
+        </div>
+        <button class="danger-outline" id="btnDelNode" style="width:100%; margin-top:8px;">🗑️ Xóa Node</button>
+      </div>
+
+      <div class="prop-section">
+        <h3 class="section-title">Luồng gửi đi (Phát)</h3>
+        <div style="display:flex; gap:8px; margin-bottom:16px;">
+          <button class="primary" style="flex:1; padding:10px;" id="btnAddTcp">+ Thêm TCP/FTP</button>
+          <button class="primary" style="flex:1; padding:10px; background:#8b5cf6;" id="btnAddUdp">+ Thêm UDP/CBR</button>
+        </div>
+        ${sendingFlowsHtml || '<div class="empty-state" style="margin-top:0">Chưa có luồng phát từ Node này.</div>'}
+      </div>
+      
+      ${receivingFlowsHtml ? `
+      <div class="prop-section">
+        <h3 class="section-title">Luồng nhận (Đích)</h3>
+        ${receivingFlowsHtml}
+      </div>` : ''}
+    `;
+
+        $('propNodeNamId').onchange = e => { n.namId = Number(e.target.value); renderAll(); };
+
+        $('btnAddTcp').onclick = () => { actionState = { flowType: 'tcp', fromId: n.id }; renderProperties(); showToast('Bấm vào Node đích trên bản vẽ'); };
+        $('btnAddUdp').onclick = () => { actionState = { flowType: 'cbr', fromId: n.id }; renderProperties(); showToast('Bấm vào Node đích trên bản vẽ'); };
+
+        panel.querySelectorAll('input[data-f]').forEach(inp => {
+          inp.oninput = e => {
+            const idx = e.target.dataset.f, key = e.target.dataset.k;
+            if (key === 'isReno') state.flows[idx][key] = e.target.checked;
+            else {
+              const val = e.target.value;
+              state.flows[idx][key] = ['start', 'stop', 'packetSize', 'window'].includes(key) ? (val === '' ? '' : Number(val)) : val;
+            }
+            if (['name', 'agentName', 'sinkName'].includes(key)) renderSvg();
+          };
+          inp.onchange = e => { if (['name', 'agentName', 'sinkName'].includes(e.target.dataset.k)) renderAll(); };
+        });
+
+        panel.querySelectorAll('button[data-delflow]').forEach(btn => {
+          btn.onclick = e => { state.flows.splice(Number(e.target.dataset.delflow), 1); renderAll(); };
+        });
+
+        $('btnDelNode').onclick = () => {
+          state.flows = state.flows.filter(f => f.src !== n.id && f.dst !== n.id);
+          state.nodes = state.nodes.filter(x => x.id !== n.id);
+          state.links = state.links.filter(l => l.a !== n.id && l.b !== n.id);
+          selected = { type: null, id: null }; renderAll();
+        };
+      }
+      else if (selected.type === 'link') {
+        const l = state.links[selected.id];
+        if (!l) return;
+        const vA = getNodeVisualId(nodeById(l.a));
+        const vB = getNodeVisualId(nodeById(l.b));
+        panel.innerHTML = `
+      <div class="prop-section">
+        <h3 class="section-title">Cấu hình Link: Node ${vA} ➔ Node ${vB}</h3>
+        <div class="input-row">
+          <div class="input-col">
+            <label>Băng thông (BW)</label>
+            <input id="propLinkBw" value="${escapeHtml(l.bw)}" placeholder="VD: 10Mb">
+          </div>
+          <div class="input-col">
+            <label>Độ trễ (Delay)</label>
+            <input id="propLinkDel" value="${escapeHtml(l.delay)}" placeholder="VD: 10ms">
+          </div>
+        </div>
+        
+        <div class="bottleneck-box">
+          <label class="field-checkbox" style="font-size:13px; color:#b45309;">
+            <input type="checkbox" id="propLinkQ" ${l.bottleneck ? 'checked' : ''}>
+            ⚠️ Đánh dấu là Link Nghẽn (Q)
+          </label>
+          
+          ${l.bottleneck ? `
+            <div class="input-row" style="margin-top:16px;">
+              <div class="input-col">
+                <label>Thuật toán (Hàng đợi)</label>
+                <select id="tblQType">
+                  <option ${l.queue === 'DropTail' ? 'selected' : ''}>DropTail</option>
+                  <option ${l.queue === 'RED' ? 'selected' : ''}>RED</option>
+                </select>
+              </div>
+              <div class="input-col">
+                <label>Limit (Kích thước Q)</label>
+                <input id="tblQLimit" value="${l.queueLimit || 40}" type="number">
+              </div>
+            </div>
+          ` : ''}
+        </div>
+        
+        <button class="danger-outline" id="btnDelLink" style="width:100%; margin-top:16px;">🗑️ Xóa Link này</button>
+      </div>
+    `;
+
+        $('propLinkBw').oninput = e => { l.bw = e.target.value; renderSvg(); };
+        $('propLinkDel').oninput = e => { l.delay = e.target.value; renderSvg(); };
+        $('propLinkQ').onchange = e => {
+          if (e.target.checked) {
+            state.links.forEach(x => x.bottleneck = false); // clear others
+            l.bottleneck = true;
+            l.queueLimit = l.queueLimit || 40;
+          } else {
+            l.bottleneck = false;
+          }
+          renderAll();
+        };
+        if (l.bottleneck) {
+          $('tblQType').onchange = e => { l.queue = e.target.value; renderAll(); };
+          $('tblQLimit').onchange = e => { l.queueLimit = Number(e.target.value); renderAll(); };
+        }
+        $('btnDelLink').onclick = () => {
+          state.links.splice(selected.id, 1);
+          selected = { type: null, id: null }; renderAll();
+        };
+      }
+      else {
+        panel.innerHTML = `
+      <div class="empty-state" style="margin-bottom:30px; margin-top:30px;">
+        <div style="font-size:40px; margin-bottom:16px;">🖱️</div>
+        Bấm vào một <b>Node</b> hoặc <b>Link</b><br>trên bản vẽ để bắt đầu cấu hình.
+      </div>
+      
+      <div class="prop-section">
+        <h3 class="section-title">Cài đặt chung</h3>
+        <div class="input-row">
+          <div class="input-col">
+            <label>Thời gian kết thúc mô phỏng (s)</label>
+            <input id="propSimTime" type="number" value="${state.simTime || 20}">
+          </div>
+        </div>
+      </div>
+      
+      <div class="prop-section">
+        <h3 class="section-title">Thống kê bản vẽ</h3>
+        <ul style="margin:0; padding-left:20px; color:var(--muted); font-size:13px; line-height:2;">
+          <li><b>${state.nodes.length}</b> Nodes / Routers</li>
+          <li><b>${state.links.length}</b> Liên kết mạng (Links)</li>
+          <li><b>${state.flows.length}</b> Luồng dữ liệu (Flows)</li>
+        </ul>
+      </div>
+    `;
+        $('propSimTime').onchange = e => { state.simTime = Number(e.target.value); };
+      }
+    }
+
+    function renderAll() {
+      renderSvg();
+      renderProperties();
+    }
+
+    // --- TOOLS BINDING ---
+    function updateTools() {
+      const toolMap = { toolSelect: 'select', toolNode: 'addNode', toolRouter: 'addRouter', toolLink: 'addLink' };
+      Object.keys(toolMap).forEach(id => {
+        $(id).classList.toggle('active', currentTool === toolMap[id]);
+      });
+    }
+    $('toolSelect').onclick = () => { currentTool = 'select'; actionState.fromId = null; updateTools(); renderAll(); };
+    $('toolNode').onclick = () => { currentTool = 'addNode'; actionState.fromId = null; selected = { type: null, id: null }; updateTools(); renderAll(); };
+    $('toolRouter').onclick = () => { currentTool = 'addRouter'; actionState.fromId = null; selected = { type: null, id: null }; updateTools(); renderAll(); };
+    $('toolLink').onclick = () => { currentTool = 'addLink'; actionState.fromId = null; selected = { type: null, id: null }; updateTools(); renderAll(); };
+
+    $('btnClear').onclick = () => {
+      if (!confirm('Xóa trắng bản vẽ?')) return;
+      state = { nodes: [], links: [], flows: [], simTime: 20 };
+      selected = { type: null, id: null }; actionState.fromId = null; currentTool = 'select'; updateTools(); renderAll();
+    };
+
+    // --- EXPORT LOGIC ---
+    function autoOrient(aId, bId) {
+      const a = nodeById(aId), b = nodeById(bId);
+      if (!a || !b) return 'right';
+      const dx = b.x - a.x, dy = b.y - a.y;
+      if (dx === 0 && dy === 0) return 'right';
+
+      // Chỉ dùng 8 hướng dựa trên góc để chính xác và không bị đè node trong NAM
+      const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+      const snappedAngle = Math.round(angle / 45) * 45;
+
+      switch (snappedAngle) {
+        case 0: return 'right';
+        case 45: return 'right-down';
+        case 90: return 'down';
+        case 135: return 'left-down';
+        case 180: case -180: return 'left';
+        case -135: return 'left-up';
+        case -90: return 'up';
+        case -45: return 'right-up';
+        default: return 'right';
+      }
+    }
+
+    function nsVar(id) {
+      const s = String(id).trim();
+      if (/^[a-zA-Z]/.test(s)) return s;
+      return 'n' + s;
+    }
+    function fmt(v) { return Number(v).toString(); }
+
+    function getSortedNodes() {
+      let sortedNodes = [...state.nodes].map((n, idx) => ({ n, idx, namId: n.namId !== undefined ? n.namId : idx }));
+      sortedNodes.sort((a, b) => {
+        if (a.namId !== b.namId) return a.namId - b.namId;
+        return a.idx - b.idx;
+      });
+      return sortedNodes;
+    }
+
+    function getTraceId(nodeId, sortedNodes) {
+      const idx = sortedNodes.findIndex(item => item.n.id === nodeId);
+      return idx !== -1 ? idx : nodeId;
+    }
+
+    function buildTcl() {
+      const base = 'BaiTap';
+      let finish = state.simTime || 20;
+
+      let s = `set ns [new Simulator]\n\nset f [open ${base}.tr w]\n$ns trace-all $f\n\nset nf [open ${base}.nam w]\n$ns namtrace-all $nf\n\nproc finish {} {\n    global ns f nf\n    $ns flush-trace\n    close $f\n    close $nf\n    exec nam ${base}.nam &\n    exit 0\n}\n\n`;
+
+      let sortedNodes = getSortedNodes();
+      sortedNodes.forEach(item => s += `set ${nsVar(item.n.id)} [$ns node]\n`); s += '\n';
+
+      s += `$ns color 0 Green\n$ns color 1 Red\n$ns color 2 Blue\n$ns color 3 Purple\n\n`;
+
+      state.links.forEach(l => {
+        const q = l.bottleneck ? (l.queue || 'DropTail') : 'DropTail';
+        s += `$ns duplex-link $${nsVar(l.a)} $${nsVar(l.b)} ${l.bw} ${l.delay} ${q}\n`;
+      });
+      s += '\n';
+
+      const bn = state.links.find(l => l.bottleneck);
+      if (bn) {
+        if (bn.queue === 'RED') {
+          s += `set redq [[$ns link $${nsVar(bn.a)} $${nsVar(bn.b)}] queue]\n$redq set limit_ ${bn.queueLimit || 40}\n\n`;
+        } else {
+          s += `$ns queue-limit $${nsVar(bn.a)} $${nsVar(bn.b)} ${bn.queueLimit || 40}\n\n`;
+        }
+      }
+
+      state.links.forEach(l => {
+        s += `$ns duplex-link-op $${nsVar(l.a)} $${nsVar(l.b)} orient ${autoOrient(l.a, l.b)}\n`;
+      });
+      s += '\n';
+
+      state.links.forEach(l => {
+        s += `$ns duplex-link-op $${nsVar(l.a)} $${nsVar(l.b)} queuePos 0.5\n`;
+      });
+      s += '\n';
+
+      // 1. Agents (TCP/UDP)
+      state.flows.forEach((f, idx) => {
+        const agVar = (f.agentName || '').replace(/\s+/g, '') || (f.type === 'tcp' ? 'tcp' : 'udp') + idx;
+        if (f.type === 'tcp') {
+          const fid = (idx % 3) + 1; // 1 (Red), 2 (Blue), 3 (Purple)
+          const agentType = f.isReno ? 'Agent/TCP/Reno' : 'Agent/TCP';
+          s += `set ${agVar} [new ${agentType}]\n$ns attach-agent $${nsVar(f.src)} $${agVar}\n$${agVar} set window_ ${f.window || 32}\n`;
+          if (f.packetSize) {
+            s += `$${agVar} set packetSize_ ${f.packetSize}\n`;
+          }
+          s += `$${agVar} set fid_ ${fid}\n\n`;
+        } else {
+          s += `set ${agVar} [new Agent/UDP]\n$${agVar} set fid_ 0\n$ns attach-agent $${nsVar(f.src)} $${agVar}\n\n`;
+        }
+      });
+
+      // 2. Traffic Generators (CBR/FTP)
+      state.flows.forEach((f, idx) => {
+        const appVar = (f.name || '').replace(/\s+/g, '') || (f.type === 'tcp' ? 'ftp' : 'cbr') + idx;
+        const agVar = (f.agentName || '').replace(/\s+/g, '') || (f.type === 'tcp' ? 'tcp' : 'udp') + idx;
+        if (f.type === 'tcp') {
+          s += `set ${appVar} [new Application/FTP]\n`;
+          s += `$${appVar} attach-agent $${agVar}\n\n`;
+        } else {
+          s += `set ${appVar} [new Application/Traffic/CBR]\n`;
+          if (f.packetSize) {
+            s += `$${appVar} set packetSize_ ${f.packetSize}\n`;
+          }
+          if (f.interval) {
+            s += `$${appVar} set interval_ ${f.interval}\n`;
+          } else {
+            const rateFmt = (f.rate || '1Mb').replace(/bps$/i, 'b').replace(/ps$/i, '');
+            s += `$${appVar} set rate_ ${rateFmt}\n`;
+          }
+          s += `$${appVar} attach-agent $${agVar}\n\n`;
+        }
+      });
+
+      // 3. Sinks / Nulls
+      state.flows.forEach((f, idx) => {
+        const sinkVar = (f.sinkName || '').replace(/\s+/g, '') || (f.type === 'tcp' ? 'sink' : 'null') + idx;
+        if (f.type === 'tcp') {
+          s += `set ${sinkVar} [new Agent/TCPSink]\n$ns attach-agent $${nsVar(f.dst)} $${sinkVar}\n\n`;
+        } else {
+          s += `set ${sinkVar} [new Agent/Null]\n$ns attach-agent $${nsVar(f.dst)} $${sinkVar}\n\n`;
+        }
+      });
+
+      // 4. Connects
+      state.flows.forEach((f, idx) => {
+        const agVar = (f.agentName || '').replace(/\s+/g, '') || (f.type === 'tcp' ? 'tcp' : 'udp') + idx;
+        const sinkVar = (f.sinkName || '').replace(/\s+/g, '') || (f.type === 'tcp' ? 'sink' : 'null') + idx;
+        s += `$ns connect $${agVar} $${sinkVar}\n`;
+      });
+      s += '\n';
+
+      // 5. Times
+      state.flows.forEach((f, idx) => {
+        const appVar = (f.name || '').replace(/\s+/g, '') || (f.type === 'tcp' ? 'ftp' : 'cbr') + idx;
+        s += `$ns at ${fmt(f.start)} "$${appVar} start"\n`;
+        s += `$ns at ${fmt(f.stop)} "$${appVar} stop"\n\n`;
+      });
+
+      s += `$ns at ${fmt(finish)} "finish"\n\n$ns run\n`;
+      return s;
+    }
+
+    function dtAwk(f, sortedNodes) {
+      const type = f.type === 'cbr' ? 'cbr' : 'tcp';
+      const srcTraceId = getTraceId(f.src, sortedNodes);
+      const dstTraceId = getTraceId(f.dst, sortedNodes);
+      return `BEGIN {\n    tggui[5000];\n    tgnhan[5000];\n    tgtruyen[5000];\n}\n\n{\n    if (($1 == "+") && ($5 == "${type}") && ($3 == "${srcTraceId}"))\n        tggui[$12] = $2\n\n    if (($1 == "r") && ($5 == "${type}") && ($4 == "${dstTraceId}"))\n    {\n        tgnhan[$12] = $2\n        tgtruyen[$12] = tgnhan[$12] - tggui[$12]\n        print($2, " ", tgtruyen[$12])\n    }\n}\n\nEND {\n}\n`;
+    }
+
+    function tltbAwk(f, agVar, sortedNodes) {
+      const type = f.type === 'cbr' ? 'cbr' : 'tcp';
+      const dstTraceId = getTraceId(f.dst, sortedNodes);
+      const label = agVar || (f.agentName || '').replace(/\s+/g, '') || (f.type === 'tcp' ? 'tcp' : 'udp');
+      return `BEGIN {\n    tgbatdau = ${fmt(f.start)}\n    tgketthuc = ${fmt(f.stop)}\n    tong = 0\n    tggoitindau = 0\n    tggoitincuoi = 0\n}\n\n{\n    if (($1 == "r") && ($5 == "${type}") && ($4 == "${dstTraceId}") && ($2 >= tgbatdau) && ($2 <= tgketthuc))\n    {\n        tong = tong + $6\n\n        if (tggoitindau == 0)\n            tggoitindau = $2\n\n        tggoitincuoi = $2\n    }\n}\n\nEND {\n    tghoatdong = tggoitincuoi - tggoitindau\n\n    if (tghoatdong <= 0)\n        tghoatdong = tgketthuc - tgbatdau\n\n    thongluongTB = (tong * 8) / (tghoatdong * 1000000)\n\n    print("Thong luong trung binh ${label}:", thongluongTB, "Mbps")\n}\n`;
+    }
+
+    const crcTable = (function () {
+      const t = new Uint32Array(256);
+      for (let n = 0; n < 256; n++) {
+        let c = n;
+        for (let k = 0; k < 8; k++) c = (c & 1) ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+        t[n] = c >>> 0;
+      }
+      return t;
+    })();
+    function crc32(bytes) {
+      let c = 0xffffffff;
+      for (const b of bytes) c = crcTable[(c ^ b) & 255] ^ (c >>> 8);
+      return (c ^ 0xffffffff) >>> 0;
+    }
+    function dosStamp() {
+      const d = new Date(), year = Math.max(1980, d.getFullYear());
+      return { time: (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1), date: ((year - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate() };
+    }
+    function u16(n) { const a = new Uint8Array(2); new DataView(a.buffer).setUint16(0, n, true); return a; }
+    function u32(n) { const a = new Uint8Array(4); new DataView(a.buffer).setUint32(0, n >>> 0, true); return a; }
+    function joinBytes(parts) { const len = parts.reduce((n, p) => n + p.length, 0), out = new Uint8Array(len); let o = 0; parts.forEach(p => { out.set(p, o); o += p.length; }); return out; }
+    function makeZip(map) {
+      const enc = new TextEncoder(), locals = [], centrals = []; let offset = 0; const stamp = dosStamp();
+      Object.entries(map).forEach(([name, text]) => {
+        const nb = enc.encode(name), data = enc.encode(text), crc = crc32(data), flags = 0x0800;
+        const local = joinBytes([u32(0x04034b50), u16(20), u16(flags), u16(0), u16(stamp.time), u16(stamp.date), u32(crc), u32(data.length), u32(data.length), u16(nb.length), u16(0), nb, data]);
+        locals.push(local);
+        const central = joinBytes([u32(0x02014b50), u16(20), u16(20), u16(flags), u16(0), u16(stamp.time), u16(stamp.date), u32(crc), u32(data.length), u32(data.length), u16(nb.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(offset), nb]);
+        centrals.push(central); offset += local.length;
+      });
+      const centralBytes = joinBytes(centrals), localBytes = joinBytes(locals), count = centrals.length;
+      const end = joinBytes([u32(0x06054b50), u16(0), u16(0), u16(count), u16(count), u32(centralBytes.length), u32(localBytes.length), u16(0)]);
+      return new Blob([localBytes, centralBytes, end], { type: 'application/zip' });
+    }
+
+    function buildXg() {
+      let s = 'TitleText: DO THI TLTB\nBarGraph: true\nBarBase: 0.0\nBarWidth: 0.25\nNoLines: true\nYUnitText: THONG LUONG\nXUnitText: VI TRI\n';
+      const N = state.flows.length;
+      state.flows.forEach((f, i) => {
+        let rawName = f.type === 'tcp' ? (f.agentName || f.name) : (f.name || f.agentName);
+        let label = (rawName || '').replace(/\s+/g, '').toUpperCase();
+        if (!label) label = (f.type === 'tcp' ? 'TCP' : 'CBR') + i;
+        if (i > 0) s += '\n';
+        s += `"${label}"\n`;
+        for (let j = 0; j < N; j++) {
+          if (j === i) {
+            s += `${j + 1} 0\n`;
+          } else {
+            s += `0 0\n`;
+          }
+        }
+      });
+      return s;
+    }
+
+    $('btnExport').onclick = () => {
+      if (document.activeElement && document.activeElement.blur) {
+        document.activeElement.blur();
+      }
+      if (state.nodes.length < 2) { showToast('Cần ít nhất 2 node'); return; }
+      const sortedNodes = getSortedNodes();
+      const out = {};
+      out['BaiTap.tcl'] = buildTcl();
+      out['TLTB.xg'] = buildXg();
+      state.flows.forEach((f, idx) => {
+        const agVar = (f.agentName || '').replace(/\s+/g, '') || (f.type === 'tcp' ? 'tcp' : 'udp') + idx;
+        const low = agVar.toLowerCase();
+        out[`DT${low}.awk`] = dtAwk(f, sortedNodes);
+        out[`TLTB${low}.awk`] = tltbAwk(f, agVar, sortedNodes);
+      });
+      const blob = makeZip(out);
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'BaiTap_NS2.zip';
+      document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1200);
+      showToast('Đã tải gói ZIP');
+    };
+
+    // --- INIT ---
+    renderAll();
+  </script>
+</body>
+
+</html>
